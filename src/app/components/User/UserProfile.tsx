@@ -11,6 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { FriendRequests } from '../User/FriendsRequsts'
 import { PostCard } from '../Posts/PostCard'
 import { useGetProfilePosts, useCreatePost } from '@/app/api/posts/posts'
+
+
 interface UserProfileProps {
   url: string;
   id: string;
@@ -26,6 +28,10 @@ interface UserProfileProps {
   hobbies: string[];
   friends: string;
   posts: string;
+  notifications: string;
+  blacklist: string;
+  friendship_requests: string;
+
 }
 
 export function UserProfile({
@@ -233,7 +239,7 @@ export function UserProfile({
                 <div className="mb-4 grid grid-cols-2 gap-2">
                   {Array.from(newPostImages).map((file, index) => (
                     <div key={index} className="relative">
-                      <img
+                      <Image
                         src={URL.createObjectURL(file)}
                         alt={`Upload preview ${index + 1}`}
                         className="w-full h-40 object-cover rounded-lg"

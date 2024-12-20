@@ -42,6 +42,7 @@ const ProfilePage = () => {
       posts={profile.posts}
       notifications={profile.notifications}
       blacklist={profile.blacklist}
+      hobbies={profile.hobbies}
       friendship_requests={profile.friendship_requests}
     />
   )

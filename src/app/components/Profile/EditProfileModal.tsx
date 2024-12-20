@@ -5,6 +5,7 @@ import { useUpdateProfile } from '@/app/api/profile/profile'
 import { useGetCities, useGetHobbies, useGetSchools } from '@/app/api/utils/utils'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
+import Image from 'next/image'
 
 interface City {
   name: string;
@@ -91,7 +92,13 @@ export default function EditProfile({ currentProfile }: { currentProfile: Profil
         <div className="flex items-center gap-4">
           <div className="h-12 w-12 rounded-full bg-zinc-800 flex items-center justify-center">
             {formData.avatar ? (
-              <img src={formData.avatar} alt={formData.username} className="h-full w-full rounded-full object-cover" />
+              <Image 
+                src={formData.avatar} 
+                alt={formData.username} 
+                width={48} 
+                height={48} 
+                className="h-full w-full rounded-full object-cover" 
+              />
             ) : (
               <span className="text-xl text-zinc-400">{formData.username?.[0]}</span>
             )}
