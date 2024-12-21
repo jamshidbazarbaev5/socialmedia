@@ -26,12 +26,9 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
         }
 
         try {
-            console.log('Attempting login...', { username, password });
             const result = await login.mutateAsync({ username, password });
-            console.log('Login result:', result);
             
             if (result.token) {
-                console.log('Login successful');
                 authLogin(result.token);
                 router.push('/profile');
                 onSuccess?.();
@@ -39,10 +36,6 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
                 setErrorMessage('Invalid login response');
             }
         } catch (error: any) {
-            console.error('Login error:', {
-                message: error.message,
-                error
-            });
             setErrorMessage(
                 error.message || 
                 'Unable to login. Please check your credentials and try again.'
@@ -53,38 +46,38 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
     return (
         <>
             {(errorMessage || login.error) && (
-                <div className="mb-6 bg-red-50 border border-red-200 p-4 rounded-lg">
-                    <p className="text-red-600 text-sm">
+                <div className="mb-6 bg-[#2C2C2C] p-4 rounded-lg border border-red-500/20">
+                    <p className="text-red-400 text-sm">
                         {errorMessage || 
                          (login.error instanceof Error ? login.error.message : 'An error occurred')}
                     </p>
                 </div>
             )}
 
-            <form className="space-y-4" onSubmit={handleSubmit}>
+            <form className="space-y-5" onSubmit={handleSubmit}>
                 <div>
-                    <label htmlFor="username" className="block text-sm font-medium text-gray-300 mb-1">
+                    <label htmlFor="username" className="block text-sm text-[#9B9B9B] mb-2">
                         Username
                     </label>
                     <input
                         id="username"
                         type="text"
                         required
-                        className="w-full px-3 py-2 bg-[#261d37] border border-[#352a4d] rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 outline-none text-white"
+                        className="w-full px-3 py-2.5 bg-[#1E1E1E] rounded-lg text-white placeholder-[#6B6B6B] outline-none transition-colors duration-200 focus:ring-1 focus:ring-white/10"
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
                     />
                 </div>
 
                 <div>
-                    <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-1">
+                    <label htmlFor="password" className="block text-sm text-[#9B9B9B] mb-2">
                         Password
                     </label>
                     <input
                         id="password"
                         type="password"
                         required
-                        className="w-full px-3 py-2 bg-[#261d37] border border-[#352a4d] rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 outline-none text-white"
+                        className="w-full px-3 py-2.5 bg-[#1E1E1E] rounded-lg text-white placeholder-[#6B6B6B] outline-none transition-colors duration-200 focus:ring-1 focus:ring-white/10"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                     />
@@ -93,7 +86,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
                 <button
                     type="submit"
                     disabled={login.isPending}
-                    className="w-full bg-gradient-to-r from-purple-500 to-blue-500 text-white py-2 rounded-lg font-medium hover:from-purple-600 hover:to-blue-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed mt-6"
+                    className="w-full bg-[#2C2C2C] hover:bg-[#3C3C3C] text-white py-2.5 rounded-lg font-medium transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed mt-6"
                 >
                     {login.isPending ? (
                         <div className="flex items-center justify-center">
@@ -108,3 +101,4 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
         </>
     );
 }
+

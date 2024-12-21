@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useUpdateProfile } from '@/app/api/profile/profile'
 import { useGetCities, useGetHobbies, useGetSchools } from '@/app/api/utils/utils'
 import { useRouter } from 'next/navigation'
@@ -44,24 +44,58 @@ export default function EditProfile({ currentProfile }: { currentProfile: Profil
     is_public: currentProfile.is_public || false
   })
   const [errors, setErrors] = useState<Record<string, string[]>>({})
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
   
   const updateProfileMutation = useUpdateProfile()
   const { data: cities } = useGetCities()
   const { data: hobbies } = useGetHobbies()
   const { data: schools } = useGetSchools()
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setSelectedFile(file)
+      const imageUrl = URL.createObjectURL(file)
+      handleChange('avatar', imageUrl)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setErrors({})
     
     try {
+      const formDataToSend = new FormData()
+      
+      // Append the file if selected
+      if (selectedFile) {
+        formDataToSend.append('avatar', selectedFile)
+      }
+      
+      // Append all other form fields
+      formDataToSend.append('username', formData.username)
+      formDataToSend.append('first_name', formData.first_name)
+      formDataToSend.append('last_name', formData.last_name)
+      formDataToSend.append('bio', formData.bio)
+      formDataToSend.append('is_public', String(formData.is_public))
+      
+      // Append optional fields only if they have values
+      if (formData.birthdate) {
+        formDataToSend.append('birthdate', formData.birthdate)
+      }
+      if (formData.school) {
+        formDataToSend.append('school', formData.school)
+      }
+      if (formData.city) {
+        formDataToSend.append('city', String(formData.city))
+      }
+      if (formData.hobbies.length > 0) {
+        formDataToSend.append('hobbies', formData.hobbies.join(','))
+      }
+
       await updateProfileMutation.mutateAsync({
         id: currentProfile.id,
-        data: {
-          ...formData,
-          school: formData.school ? formData.school.toString() : '',
-          hobbies: formData.hobbies || [],
-        }
+        data: formDataToSend
       })
       router.push('/profile')
     } catch (error: any) {
@@ -75,6 +109,14 @@ export default function EditProfile({ currentProfile }: { currentProfile: Profil
       [name]: value
     }))
   }
+
+  useEffect(() => {
+    return () => {
+      if (formData.avatar && formData.avatar.startsWith('blob:')) {
+        URL.revokeObjectURL(formData.avatar)
+      }
+    }
+  }, [formData.avatar])
 
   return (
     <div className="min-h-screen bg-black text-white p-4 max-w-3xl mx-auto">
@@ -107,9 +149,21 @@ export default function EditProfile({ currentProfile }: { currentProfile: Profil
             <p className="font-medium">{formData.username}</p>
           </div>
         </div>
-        <button className="bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2 rounded-lg transition-colors">
-          Change Photo
-        </button>
+        <div className="relative">
+          <input
+            type="file"
+            id="avatar-upload"
+            accept="image/*"
+            onChange={handleFileSelect}
+            className="hidden"
+          />
+          <label
+            htmlFor="avatar-upload"
+            className="bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2 rounded-lg transition-colors cursor-pointer inline-block"
+          >
+            Change Photo
+          </label>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">

@@ -41,12 +41,10 @@ export const useCreatePost = () => {
       requestData.append('content', formData.get('content') as string)
       
       const files = formData.getAll('post_attachments')
-      if (files.length === 1 && typeof files[0] === 'string') {
-        requestData.append('post_attachments', '[]')
-      } else {
-        files.forEach((file, index) => {
+      if (files.length > 0) {
+        files.forEach((file) => {
           if (file instanceof File) {
-            requestData.append(`post_attachments[${index}][image]`, file)
+            requestData.append('image', file)
           }
         })
       }
@@ -59,7 +57,7 @@ export const useCreatePost = () => {
       const response = await api.post(`/profile/${profileId}/posts/`, requestData, {
         headers: {
           'Accept': 'application/json',
-          'Content-Type': undefined
+          'Content-Type': 'multipart/form-data'
         }
       })
       

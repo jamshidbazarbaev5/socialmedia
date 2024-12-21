@@ -25,86 +25,93 @@ export default function RegisterPage() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-[#0E0B18] bg-gradient-to-br from-[#0E0B18] via-[#1a1527] to-[#261d37] py-12 px-4 sm:px-6 lg:px-8">
-            <div className="max-w-md w-full backdrop-blur-sm bg-[#1a1527]/50 p-10 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.3)] border border-[#261d37]">
-                <div className="mb-10">
-                    <h2 className="text-center text-4xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
-                        Join Us
-                    </h2>
-                    <p className="mt-3 text-center text-gray-400 text-sm">
-                        Create your account to get started
-                    </p>
-                </div>
-                <form className="space-y-5" onSubmit={handleSubmit}>
-                    <div className="grid grid-cols-2 gap-4">
-                        <input
-                            name="first_name"
-                            type="text"
-                            required
-                            placeholder="First Name"
-                            className="w-full px-4 py-3 rounded-lg bg-[#261d37]/50 border border-[#382b4e] focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all duration-200 outline-none text-gray-200 placeholder-gray-400"
-                            value={formData.first_name}
-                            onChange={handleChange}
-                        />
-                        <input
-                            name="last_name"
-                            type="text"
-                            required
-                            placeholder="Last Name"
-                            className="w-full px-4 py-3 rounded-lg bg-[#261d37]/50 border border-[#382b4e] focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all duration-200 outline-none text-gray-200 placeholder-gray-400"
-                            value={formData.last_name}
-                            onChange={handleChange}
-                        />
-                    </div>
-                    <input
-                        name="username"
-                        type="text"
-                        required
-                        placeholder="Username"
-                        className="w-full px-4 py-3 rounded-lg bg-[#261d37]/50 border border-[#382b4e] focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all duration-200 outline-none text-gray-200 placeholder-gray-400"
-                        value={formData.username}
-                        onChange={handleChange}
-                    />
-                    <input
-                        name="email"
-                        type="email"
-                        required
-                        placeholder="Email address"
-                        className="w-full px-4 py-3 rounded-lg bg-[#261d37]/50 border border-[#382b4e] focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all duration-200 outline-none text-gray-200 placeholder-gray-400"
-                        value={formData.email}
-                        onChange={handleChange}
-                    />
-                    <input
-                        name="password"
-                        type="password"
-                        required
-                        placeholder="Password"
-                        className="w-full px-4 py-3 rounded-lg bg-[#261d37]/50 border border-[#382b4e] focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all duration-200 outline-none text-gray-200 placeholder-gray-400"
-                        value={formData.password}
-                        onChange={handleChange}
-                    />
-                    <button
-                        type="submit"
-                        className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-lg font-medium hover:from-purple-700 hover:to-blue-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed mt-6"
-                        disabled={register.isPending}
-                    >
-                        {register.isPending ? (
-                            <div className="flex items-center justify-center">
-                                <div className="w-5 h-5 border-t-2 border-b-2 border-white rounded-full animate-spin mr-2"></div>
-                                Creating Account...
-                            </div>
-                        ) : (
-                            'Create Account'
-                        )}
-                    </button>
-                </form>
-                {register.isError && (
-                    <div className="mt-6 bg-red-900/20 border-l-4 border-red-500 p-4 rounded-r-lg">
-                        <p className="text-red-400 text-sm font-medium">
-                            Registration failed. Please try again.
+        <div className="min-h-screen flex bg-black">
+            <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8">
+                <div className="w-full max-w-[500px] bg-black/80 rounded-lg p-8">
+                    <div className="mb-8">
+                        <h2 className="text-center text-3xl font-medium text-white">
+                            Create Account
+                        </h2>
+                        <p className="mt-2 text-center text-[#9B9B9B] text-sm">
+                            Or{' '}
+                            <a href="/login" className="text-white hover:text-gray-300 transition-colors duration-200">
+                                sign in to your account
+                            </a>
                         </p>
                     </div>
-                )}
+                    <form className="space-y-5" onSubmit={handleSubmit}>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label htmlFor="first_name" className="block text-sm text-[#9B9B9B] mb-2">
+                                    First Name
+                                </label>
+                                <input
+                                    id="first_name"
+                                    name="first_name"
+                                    type="text"
+                                    required
+                                    className="w-full px-3 py-2.5 bg-[#1E1E1E] rounded-lg text-white placeholder-[#6B6B6B] outline-none transition-colors duration-200 focus:ring-1 focus:ring-white/10"
+                                    value={formData.first_name}
+                                    onChange={handleChange}
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="last_name" className="block text-sm text-[#9B9B9B] mb-2">
+                                    Last Name
+                                </label>
+                                <input
+                                    id="last_name"
+                                    name="last_name"
+                                    type="text"
+                                    required
+                                    className="w-full px-3 py-2.5 bg-[#1E1E1E] rounded-lg text-white placeholder-[#6B6B6B] outline-none transition-colors duration-200 focus:ring-1 focus:ring-white/10"
+                                    value={formData.last_name}
+                                    onChange={handleChange}
+                                />
+                            </div>
+                        </div>
+                        
+                        {/* Username, Email, Password fields */}
+                        {['username', 'email', 'password'].map((field) => (
+                            <div key={field}>
+                                <label htmlFor={field} className="block text-sm text-[#9B9B9B] mb-2">
+                                    {field.charAt(0).toUpperCase() + field.slice(1)}
+                                </label>
+                                <input
+                                    id={field}
+                                    name={field}
+                                    type={field === 'password' ? 'password' : 'text'}
+                                    required
+                                    className="w-full px-3 py-2.5 bg-[#1E1E1E] rounded-lg text-white placeholder-[#6B6B6B] outline-none transition-colors duration-200 focus:ring-1 focus:ring-white/10"
+                                    value={formData[field as keyof typeof formData]}
+                                    onChange={handleChange}
+                                />
+                            </div>
+                        ))}
+
+                        <button
+                            type="submit"
+                            className="w-full bg-[#2C2C2C] hover:bg-[#3C3C3C] text-white py-2.5 rounded-lg font-medium transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed mt-6"
+                            disabled={register.isPending}
+                        >
+                            {register.isPending ? (
+                                <div className="flex items-center justify-center">
+                                    <div className="w-5 h-5 border-t-2 border-b-2 border-white rounded-full animate-spin mr-2"></div>
+                                    Creating Account...
+                                </div>
+                            ) : (
+                                'Create Account'
+                            )}
+                        </button>
+                    </form>
+                    {register.isError && (
+                        <div className="mt-6 bg-[#2C2C2C] p-4 rounded-lg border border-red-500/20">
+                            <p className="text-red-400 text-sm">
+                                Registration failed. Please try again.
+                            </p>
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );

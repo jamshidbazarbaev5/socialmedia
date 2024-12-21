@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { FriendRequests } from '../User/FriendsRequsts'
 import { PostCard } from '../Posts/PostCard'
 import { useGetProfilePosts, useCreatePost } from '@/app/api/posts/posts'
+import FriendsModal from '@/app/components/Friends/Friends'
 
 
 interface UserProfileProps {
@@ -55,16 +56,29 @@ export function UserProfile({
   const [newPostContent, setNewPostContent] = useState('')
   const [newPostImages, setNewPostImages] = useState<File[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isFriendsModalOpen, setIsFriendsModalOpen] = useState(false)
   
   const { data: userPosts } = useGetProfilePosts(id)
   const { data: userFriends } = useGetUserFriends(id)
   const createPost = useCreatePost()
+  console.log(userPosts)
 
   useEffect(() => {
     if (school) {
       console.log(school)
     }
   }, [school])
+
+  useEffect(() => {
+    return () => {
+      // Cleanup object URLs when component unmounts
+      newPostImages.forEach(file => {
+        if (file instanceof File) {
+          URL.revokeObjectURL(URL.createObjectURL(file))
+        }
+      })
+    }
+  }, [newPostImages])
 
   const handleLogout = async () => {
     try {
@@ -80,21 +94,19 @@ export function UserProfile({
     if (!newPostContent && newPostImages.length === 0) return
 
     setIsSubmitting(true)
+    const formData = new FormData()
+    
     try {
-      const formData = new FormData()
       formData.append('content', newPostContent)
       
-      if (newPostImages.length > 0) {
-        newPostImages.forEach((file, index) => {
-          formData.append(`post_attachments[${index}][image]`, file)
-        })
-      } else {
-        formData.append('post_attachments', '[]')
-      }
+      newPostImages.forEach((file) => {
+        formData.append('image', file)
+      })
 
       console.log('Submitting post with:', {
         content: newPostContent,
-        imageCount: newPostImages.length
+        imageCount: newPostImages.length,
+        images: Array.from(formData.getAll('image')).map(f => f instanceof File ? f.name : f)
       })
 
       const result = await createPost.mutateAsync({ 
@@ -108,14 +120,18 @@ export function UserProfile({
       setNewPostImages([])
     } catch (error: any) {
       console.error('Post creation failed:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status
+        error,
+        formData: Array.from(formData.entries())
       })
       alert(`Failed to create post: ${JSON.stringify(error.response?.data || error.message)}`)
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    setNewPostImages(prev => [...prev, ...files])
   }
 
   const handleEditProfile = () => {
@@ -156,11 +172,12 @@ export function UserProfile({
         <div className="flex items-start gap-8 py-8">
           <div className="relative">
             <Image
-              src={avatar || '/placeholder.svg?height=150&width=150'}
+              src={avatar || '/placeholder.svg'}
               alt={username}
               width={150}
               height={150}
-              className="rounded-full"
+              className="rounded-full object-cover"
+              unoptimized
             />
           </div>
           <div className="flex-1">
@@ -180,7 +197,10 @@ export function UserProfile({
               <div>
                 <span className="font-semibold">{userPosts?.length || 0}</span> posts
               </div>
-              <div>
+              <div 
+                onClick={() => setIsFriendsModalOpen(true)}
+                className="cursor-pointer hover:opacity-80"
+              >
                 <span className="font-semibold">{userFriends?.length || 0}</span> friends
               </div>
             </div>
@@ -237,11 +257,13 @@ export function UserProfile({
               
               {newPostImages.length > 0 && (
                 <div className="mb-4 grid grid-cols-2 gap-2">
-                  {Array.from(newPostImages).map((file, index) => (
+                  {newPostImages.map((file, index) => (
                     <div key={index} className="relative">
                       <Image
                         src={URL.createObjectURL(file)}
                         alt={`Upload preview ${index + 1}`}
+                        width={200}
+                        height={200}
                         className="w-full h-40 object-cover rounded-lg"
                       />
                       <button
@@ -266,10 +288,7 @@ export function UserProfile({
                     type="file"
                     accept="image/*"
                     multiple
-                    onChange={(e) => {
-                      const files = Array.from(e.target.files || [])
-                      setNewPostImages([...newPostImages, ...files])
-                    }}
+                    onChange={handleImageSelect}
                     className="hidden"
                   />
                   <div className="flex items-center gap-2 text-zinc-400 hover:text-white">
@@ -349,7 +368,11 @@ export function UserProfile({
         </Tabs>
       </div>
 
-     
+      <FriendsModal 
+        isOpen={isFriendsModalOpen}
+        onClose={() => setIsFriendsModalOpen(false)}
+        profileId={id}
+      />
     </div>
   )
 }

@@ -170,23 +170,18 @@ interface UpdateProfileData {
   is_public: boolean;
 }
 
-export const updateProfile = async (id: string, data: UpdateProfileData) => {
+type UpdateProfilePayload = UpdateProfileData | FormData;
+
+export const updateProfile = async (id: string, data: UpdateProfilePayload) => {
   try {
-    const formattedData = {
-      ...data,
-      school: data.school || null,
-      hobbies: data.hobbies || [],
-      birthdate: data.birthdate || null,
-      is_public: Boolean(data.is_public)
-    };
-
-    // Object.keys(formattedData).forEach(key => 
-    //   formattedData[key] === null && delete formattedData[key]
-    // );
-
-    console.log('Sending formatted data:', formattedData);
-
-    const response = await api.put(`/profile/${id}/`, formattedData);
+    const response = await api.put(`/profile/${id}/`, data, {
+      headers: {
+        ...(data instanceof FormData 
+          ? { 'Content-Type': 'multipart/form-data' }
+          : { 'Content-Type': 'application/json' }
+        ),
+      },
+    });
     return response.data;
   } catch (error: any) {
     const errorMessage = error.response?.data || {};
@@ -199,7 +194,7 @@ export const useUpdateProfile = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateProfileData }) => 
+    mutationFn: ({ id, data }: { id: string; data: UpdateProfilePayload }) => 
       updateProfile(id, data),
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['profile', variables.id] });
@@ -305,6 +300,30 @@ export const useRejectFriendRequest = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['friendRequests', id] });
             queryClient.invalidateQueries({ queryKey: ['friendStatus', id] });
+        },
+    });
+}
+
+export const deleteFriend = async (profileId: string, friendId: string) => {
+    try {
+        const response = await api.delete(`/profile/${friendId}/remove_from_friends/`);
+        return response.data;
+    } catch (error) {
+        console.error('Error deleting friend:', error);
+        throw error;
+    }
+}
+
+export const useDeleteFriend = () => {
+    const queryClient = useQueryClient();
+    
+    return useMutation({
+        mutationFn: ({ profileId, friendId }: { profileId: string; friendId: string }) => 
+            deleteFriend(profileId, friendId),
+        onSuccess: (_, variables) => {
+            // Invalidate relevant queries
+            queryClient.invalidateQueries({ queryKey: ['friends', variables.profileId] });
+            queryClient.invalidateQueries({ queryKey: ['friendStatus', variables.friendId] });
         },
     });
 }
