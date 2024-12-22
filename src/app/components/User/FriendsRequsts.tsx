@@ -69,32 +69,58 @@ export function FriendRequests({ profileId }: FriendRequestProps) {
                     </div>
 
                     <div className="flex space-x-2">
-                        <Button
-                            variant="secondary"
-                            size="sm"
-                            className="bg-green-600 hover:bg-green-700"
-                            onClick={() => acceptMutation.mutateAsync({
-                                profileId,
-                                requestId: request.id
-                            })}
-                            disabled={acceptMutation.isPending}
-                        >
-                            <UserCheck className="h-4 w-4 mr-2" />
-                            Accept
-                        </Button>
-                        <Button
-                            variant="secondary"
-                            size="sm"
-                            className="bg-red-600 hover:bg-red-700"
-                            onClick={() => rejectMutation.mutateAsync({
-                                profileId,
-                                requestId: request.id
-                            })}
-                            disabled={rejectMutation.isPending}
-                        >
-                            <UserX className="h-4 w-4 mr-2" />
-                            Decline
-                        </Button>
+                        {request.status === 'ACCEPTED' ? (
+                            <Button
+                                variant="secondary"
+                                size="sm"
+                                className="bg-zinc-600 hover:bg-zinc-700"
+                                onClick={() => rejectMutation.mutateAsync({
+                                    profileId,
+                                    requestId: request.id
+                                })}
+                                disabled={rejectMutation.isPending}
+                            >
+                                Remove
+                            </Button>
+                        ) : request.status === 'SENT' ? (
+                            <Button
+                                variant="secondary"
+                                size="sm"
+                                className="bg-zinc-600 hover:bg-zinc-700"
+                                disabled
+                            >
+                                Sent
+                            </Button>
+                        ) : (
+                            <>
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    className="bg-green-600 hover:bg-green-700"
+                                    onClick={() => acceptMutation.mutateAsync({
+                                        profileId,
+                                        requestId: request.id
+                                    })}
+                                    disabled={acceptMutation.isPending}
+                                >
+                                    <UserCheck className="h-4 w-4 mr-2" />
+                                    Accept
+                                </Button>
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    className="bg-red-600 hover:bg-red-700"
+                                    onClick={() => rejectMutation.mutateAsync({
+                                        profileId,
+                                        requestId: request.id
+                                    })}
+                                    disabled={rejectMutation.isPending}
+                                >
+                                    <UserX className="h-4 w-4 mr-2" />
+                                    Decline
+                                </Button>
+                            </>
+                        )}
                     </div>
                 </div>
             ))}

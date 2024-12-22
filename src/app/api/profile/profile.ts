@@ -86,11 +86,9 @@ export const checkFriendStatus = async (targetId: string, currentUserId: string,
             targetUsername 
         });
         
-        // Get friend requests for the logged-in user
         const response = await api.get(`/profile/${currentUserId}/friends/requests/`);
         console.log('Friend requests:', response.data);
         
-        // Find request involving the target user by username
         const relevantRequest = response.data.find((request: any) => {
             return request.created_by === targetUsername;
         });
@@ -321,7 +319,6 @@ export const useDeleteFriend = () => {
         mutationFn: ({ profileId, friendId }: { profileId: string; friendId: string }) => 
             deleteFriend(profileId, friendId),
         onSuccess: (_, variables) => {
-            // Invalidate relevant queries
             queryClient.invalidateQueries({ queryKey: ['friends', variables.profileId] });
             queryClient.invalidateQueries({ queryKey: ['friendStatus', variables.friendId] });
         },
