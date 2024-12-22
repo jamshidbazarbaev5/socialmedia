@@ -12,6 +12,8 @@ import {useRouter} from "next/navigation";
 import Link from "next/link";
 import { FriendRequests } from '@/app/components/User/FriendsRequsts'
 import { FriendshipStatus } from '@/app/api/profile/profile'
+import { PostCard } from '../Posts/PostCard'
+import { useGetProfilePosts } from '@/app/api/posts/posts'
 
 interface UserProfileViewProps {
     url: string
@@ -64,11 +66,10 @@ export function UserProfileView({
     const router = useRouter()
 
     const { data: selectedUserProfile, isLoading: profileLoading } = useGetUserProfile(id)
-    const { data: userPosts } = useGetPosts(id)
+    const { data: userPosts } = useGetProfilePosts(id)
     const { data: userFriends } = useGetUserFriends(id)
     
-
-
+    const [requestStatus, setRequestStatus] = useState(friendStatus?.status || null)
 
     const handleAddFriend = async () => {
         if (!user) {
@@ -80,7 +81,6 @@ export function UserProfileView({
             console.error('No target user ID provided');
             return;
         }
-        
 
         try {
             console.log('Sending friend request with ID:', id);
@@ -94,6 +94,7 @@ export function UserProfileView({
                 },
             });
             
+            setRequestStatus(FriendshipStatus.SENT);
             console.log('Friend request sent successfully');
             
         } catch (error) {
@@ -106,17 +107,11 @@ export function UserProfileView({
     }
 
     const renderFriendButton = () => {
-        console.log('Current user:', user);
-        console.log('Target user:', { id, username });
-        console.log('Friend status:', friendStatus);
-
         if (user?.profile_id === id) {
-            console.log('This is user\'s own profile');
             return null;
         }
 
-        const status = friendStatus?.status;
-        console.log('Friendship status:', status);
+        const status = requestStatus || friendStatus?.status;
 
         switch (status) {
             case FriendshipStatus.ACCEPTED:
@@ -135,8 +130,19 @@ export function UserProfileView({
                         className="bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg"
                         disabled
                     >
+                        Request Sent
+                    </Button>
+                );
+            case FriendshipStatus.REJECTED:
+                return (
+                    <Button
+                        variant="secondary"
+                        className="bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg"
+                        onClick={handleAddFriend}
+                        disabled={addFriendMutation.isPending}
+                    >
                         <UserPlus className="h-4 w-4 mr-2"/>
-                        Friend Request Sent
+                        Add Friend
                     </Button>
                 );
             default:
@@ -218,7 +224,6 @@ export function UserProfileView({
                     </div>
                 </div>
 
-                {/* Tabs */}
                 <Tabs defaultValue="posts" className="w-full">
                     <TabsList className="w-full justify-start border-b border-zinc-800 bg-transparent h-auto p-0">
                         <TabsTrigger
@@ -266,15 +271,36 @@ export function UserProfileView({
                         )}
                     </TabsList>
                     <TabsContent value="posts" className="mt-8">
-                        <div className="flex flex-col items-center justify-center py-16">
-                            <div
-                                className="w-24 h-24 rounded-full border-2 border-white flex items-center justify-center mb-4">
-                                <Camera className="w-12 h-12"/>
+                        {!userPosts || userPosts.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-16">
+                                <div className="w-24 h-24 rounded-full border-2 border-white flex items-center justify-center mb-4">
+                                    <Camera className="w-12 h-12"/>
+                                </div>
+                                <h3 className="text-2xl font-semibold mb-4">
+                                    No Posts Yet
+                                </h3>
                             </div>
-                            <h3 className="text-2xl font-semibold mb-4">
-                                Публикаций пока нет
-                            </h3>
-                        </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {userPosts.map((post: any) => (
+                                    <PostCard
+                                        key={post.id}
+                                        id={post.id}
+                                        content={post.content}
+                                        post_attachments={post.post_attachments}
+                                        likes_count={post.likes_count || 0}
+                                        comments_count={post.comments_count || 0}
+                                        user={{
+                                            username: username,
+                                            avatar: avatar || '/placeholder.svg'
+                                        }}
+                                        created_at={post.created_at}
+                                        isLiked={post.is_liked}
+                                        comments={post.comments || []}
+                                    />
+                                ))}
+                            </div>
+                        )}
                     </TabsContent>
                     {/*<TabsContent value="tags" className="mt-8">*/}
                     {/*    <div className="flex flex-col items-center justify-center py-16">*/}
@@ -300,4 +326,3 @@ export function UserProfileView({
         </div>
     )
 }
-

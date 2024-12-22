@@ -100,13 +100,13 @@ export function UserProfile({
       formData.append('content', newPostContent)
       
       newPostImages.forEach((file) => {
-        formData.append('image', file)
+        formData.append('uploaded_images', file)
       })
 
       console.log('Submitting post with:', {
         content: newPostContent,
         imageCount: newPostImages.length,
-        images: Array.from(formData.getAll('image')).map(f => f instanceof File ? f.name : f)
+        images: Array.from(formData.getAll('uploaded_images')).map(f => f instanceof File ? f.name : f)
       })
 
       const result = await createPost.mutateAsync({ 

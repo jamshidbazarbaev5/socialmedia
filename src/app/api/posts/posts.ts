@@ -40,38 +40,55 @@ export const useCreatePost = () => {
       
       requestData.append('content', formData.get('content') as string)
       
-      const files = formData.getAll('post_attachments')
+      const files = formData.getAll('uploaded_images')
       if (files.length > 0) {
         files.forEach((file) => {
           if (file instanceof File) {
-            requestData.append('image', file)
+            requestData.append('uploaded_images', file)
           }
         })
       }
 
-      console.log('Sending request with FormData contents:')
+      console.log('Request Data:')
       for (let pair of requestData.entries()) {
         console.log(pair[0], ':', pair[1] instanceof File ? `File: ${pair[1].name}` : pair[1])
       }
 
-      const response = await api.post(`/profile/${profileId}/posts/`, requestData, {
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'multipart/form-data'
-        }
-      })
-      
-      return response.data
+      try {
+        const response = await api.post(`/profile/${profileId}/posts/`, requestData, {
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'multipart/form-data'
+          }
+        })
+        return response.data
+      } catch (err: any) {
+        console.error('API Error Details:', {
+          error: err,
+          errorMessage: err.message,
+          responseData: err.response?.data,
+          responseStatus: err.response?.status,
+          requestData: {
+            content: requestData.get('content'),
+            filesCount: files.length,
+            endpoint: `/profile/${profileId}/posts/`
+          }
+        })
+        throw err
+      }
     },
     onSuccess: (_, { profileId }) => {
       queryClient.invalidateQueries({ queryKey: ['posts', profileId] })
     },
     onError: (error: any) => {
-      console.error('Post creation error:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status
-      })
+      const errorDetails = {
+        message: error?.message || 'Unknown error occurred',
+        response: error?.response?.data || {},
+        status: error?.response?.status || 'No status',
+        name: error?.name || 'Error'
+      }
+      
+      console.error('Post creation error:', errorDetails)
       throw error
     }
   })

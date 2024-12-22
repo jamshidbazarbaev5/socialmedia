@@ -53,7 +53,6 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
                     </p>
                 </div>
             )}
-
             <form className="space-y-5" onSubmit={handleSubmit}>
                 <div>
                     <label htmlFor="username" className="block text-sm text-[#9B9B9B] mb-2">

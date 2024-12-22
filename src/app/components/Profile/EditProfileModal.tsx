@@ -12,6 +12,7 @@ interface City {
 }
 
 interface School {
+  id: number;
   name: string;
 }
 
@@ -67,19 +68,16 @@ export default function EditProfile({ currentProfile }: { currentProfile: Profil
     try {
       const formDataToSend = new FormData()
       
-      // Append the file if selected
       if (selectedFile) {
         formDataToSend.append('avatar', selectedFile)
       }
       
-      // Append all other form fields
       formDataToSend.append('username', formData.username)
       formDataToSend.append('first_name', formData.first_name)
       formDataToSend.append('last_name', formData.last_name)
       formDataToSend.append('bio', formData.bio)
       formDataToSend.append('is_public', String(formData.is_public))
       
-      // Append optional fields only if they have values
       if (formData.birthdate) {
         formDataToSend.append('birthdate', formData.birthdate)
       }
@@ -221,8 +219,8 @@ export default function EditProfile({ currentProfile }: { currentProfile: Profil
             className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-zinc-700 transition-colors"
           >
             <option value="">Select school</option>
-            {schools?.map((school, index) => (
-              <option key={index} value={school.name}>
+            {schools?.map((school) => (
+              <option key={school.id} value={school.id}>
                 {school.name}
               </option>
             ))}

@@ -95,21 +95,34 @@ export default function NotificationsPage() {
                   </div>
                 </div>
                 <div className="flex space-x-2">
-                  <Button
-                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-1 rounded"
-                    onClick={() => handleAcceptFriend(request)} 
-                    disabled={acceptMutation.isPending}
-                  >
-                    Accept
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-1 rounded"
-                    onClick={() => handleRejectFriend(request)} 
-                    disabled={rejectMutation.isPending}
-                  >
-                    Decline
-                  </Button>
+                  {request.status === 'ACCEPTED' ? (
+                    <Button
+                      variant="secondary"
+                      className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-1 rounded"
+                      onClick={() => handleRejectFriend(request)}
+                      disabled={rejectMutation.isPending}
+                    >
+                      Remove
+                    </Button>
+                  ) : (
+                    <>
+                      <Button
+                        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-1 rounded"
+                        onClick={() => handleAcceptFriend(request)}
+                        disabled={acceptMutation.isPending}
+                      >
+                        Accept
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-1 rounded"
+                        onClick={() => handleRejectFriend(request)}
+                        disabled={rejectMutation.isPending}
+                      >
+                        Decline
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
             );
@@ -119,4 +132,3 @@ export default function NotificationsPage() {
     </div>
   );
 }
-
