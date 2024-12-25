@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { Edit3, Archive, Settings, Camera, UserPlus, MoreHorizontal, Image as ImageIcon } from 'lucide-react'
+import {Edit3, Archive, Settings, Camera, UserPlus, MoreHorizontal, Image as ImageIcon, UserCircle} from 'lucide-react'
 import { useGetUserFriends, useGetUserProfile } from '@/app/api/profile/profile'
 import { useAuth } from '@/app/context/AuthContext'
 import { useRouter } from 'next/navigation'
@@ -35,6 +35,15 @@ interface UserProfileProps {
 
 }
 
+// First, let's define a proper interface for friends
+interface Friend {
+  id: string;
+  username: string;
+  first_name: string;
+  last_name: string;
+  avatar: string | null;
+}
+
 export function UserProfile({
   url,
   id,
@@ -58,8 +67,8 @@ export function UserProfile({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isFriendsModalOpen, setIsFriendsModalOpen] = useState(false)
   
-  const { data: userPosts } = useGetProfilePosts(id)
-  const { data: userFriends } = useGetUserFriends(id)
+  const { data: userPosts = [] } = useGetProfilePosts(id)
+  const { data: userFriends = [] } = useGetUserFriends(id)
   const createPost = useCreatePost()
   console.log(userPosts)
 
@@ -138,6 +147,32 @@ export function UserProfile({
     router.push('/profile/edit')
   }
 
+  // Move the tabs data outside the render function
+  const tabsData = [
+    {
+      key: "posts",
+      value: "posts",
+      icon: (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path d="M3 3h18v18H3V3zm16 16V5H5v14h14zM7 7h4v4H7V7zm0 6h10v4H7v-4z" strokeWidth="2" />
+        </svg>
+      ),
+      label: "POSTS"
+    },
+    {
+      key: "friends",
+      value: "friends",
+      icon: <UserPlus className="w-4 h-4" />,
+      label: "FRIENDS"
+    },
+    {
+      key: "requests",
+      value: "requests",
+      icon: <UserPlus className="w-4 h-4" />,
+      label: "FRIEND REQUESTS"
+    }
+  ]
+
   return (
     <div className="bg-black text-white min-h-screen">
       <div className="max-w-4xl mx-auto px-4">
@@ -170,15 +205,25 @@ export function UserProfile({
         </div>
 
         <div className="flex items-start gap-8 py-8">
-          <div className="relative">
-            <Image
-              src={avatar || '/placeholder.svg'}
-              alt={username}
-              width={150}
-              height={150}
-              className="rounded-full object-cover"
-              unoptimized
-            />
+          <div className="relative w-[150px] h-[150px]">
+            {avatar ? (
+                <Image
+                    src={avatar || '/placeholder.svg'}
+                    alt={username}
+                    fill
+                    className="rounded-full object-cover"
+                    sizes="150px"
+                    priority
+                />
+
+
+            ):(
+                <UserCircle className="w-full h-full text-white p-2" />
+
+
+            )}
+
+
           </div>
           <div className="flex-1">
             <div className="mb-6">
@@ -192,6 +237,7 @@ export function UserProfile({
                   🎂 {new Date(birthdate).toLocaleDateString()}
                 </p>
               )}
+
             </div>
             <div className="flex gap-8 text-sm">
               <div>
@@ -209,30 +255,7 @@ export function UserProfile({
 
         <Tabs defaultValue="posts" className="w-full">
           <TabsList className="w-full justify-start border-b border-zinc-800 bg-transparent h-auto p-0">
-            {[
-              {
-                key: "posts",
-                value: "posts",
-                icon: (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path d="M3 3h18v18H3V3zm16 16V5H5v14h14zM7 7h4v4H7V7zm0 6h10v4H7v-4z" strokeWidth="2" />
-                  </svg>
-                ),
-                label: "POSTS"
-              },
-              {
-                key: "friends",
-                value: "friends",
-                icon: <UserPlus className="w-4 h-4" />,
-                label: "FRIENDS"
-              },
-              {
-                key: "requests",
-                value: "requests",
-                icon: <UserPlus className="w-4 h-4" />,
-                label: "FRIEND REQUESTS"
-              }
-            ].map((tab) => (
+            {tabsData.map((tab) => (
               <TabsTrigger
                 key={tab.key}
                 value={tab.value}
@@ -321,10 +344,13 @@ export function UserProfile({
                 {userPosts.map((post: any) => (
                   <PostCard
                     key={post.id}
+                    url={post.url}
                     id={post.id}
+                    profileId={id}
+                    currentUserId={user?.profile_id}
                     content={post.content}
                     post_attachments={post.post_attachments}
-                    likes_count={post.likes_count || 0}
+                    likes_count={post.likes || 0}
                     comments_count={post.comments_count || 0}
                     user={{
                       username: username,
@@ -341,8 +367,11 @@ export function UserProfile({
 
           <TabsContent value="friends" className="mt-8">
             <div className="grid grid-cols-3 gap-4">
-              {userFriends?.map((friend: any) => (
-                <div key={friend.id} className="flex items-center gap-3 p-4 bg-zinc-900 rounded-lg">
+              {userFriends.map((friend: Friend) => (
+                <div 
+                  key={friend.id}
+                  className="flex items-center gap-3 p-4 bg-zinc-900 rounded-lg"
+                >
                   <Image
                     src={friend.avatar || '/placeholder.svg'}
                     alt={friend.username}
@@ -359,12 +388,13 @@ export function UserProfile({
             </div>
           </TabsContent>
 
-          {/* <TabsContent value="requests" className="mt-8">*/}
-          {/*  <div className="max-w-2xl mx-auto">*/}
-          {/*    <h2 className="text-xl font-semibold mb-4">Friend Requests</h2>*/}
-          {/*    <FriendRequests profileId={id} />*/}
-          {/*  </div>*/}
-          {/*</TabsContent> */}
+           <TabsContent value="requests" className="mt-8">
+            <div className="max-w-2xl mx-auto">
+              <h2 className="text-xl font-semibold mb-4">Friend Requests</h2>
+              <FriendRequests profileId={id} />
+            </div>
+          </TabsContent>
+
         </Tabs>
       </div>
 
@@ -372,6 +402,10 @@ export function UserProfile({
         isOpen={isFriendsModalOpen}
         onClose={() => setIsFriendsModalOpen(false)}
         profileId={id}
+
+
+
+
       />
     </div>
   )

@@ -80,27 +80,22 @@ export const useProfiles =() =>{
 
 export const checkFriendStatus = async (targetId: string, currentUserId: string, targetUsername: string): Promise<FriendStatusResponse> => {
     try {
-        console.log('Checking friend status for:', { 
-            currentUserId, 
-            targetId,
-            targetUsername 
-        });
+        const friendsResponse = await api.get(`/profile/${currentUserId}/friends/`);
+        const isFriend = friendsResponse.data.some((friend: any) => friend.username === targetUsername);
         
-        const response = await api.get(`/profile/${currentUserId}/friends/requests/`);
-        console.log('Friend requests:', response.data);
+        if (isFriend) {
+            return { status: FriendshipStatus.ACCEPTED };
+        }
         
-        const relevantRequest = response.data.find((request: any) => {
-            return request.created_by === targetUsername;
-        });
-
-        console.log('Found relevant request:', relevantRequest);
+        const requestsResponse = await api.get(`/profile/${currentUserId}/friends/requests/`);
+        const relevantRequest = requestsResponse.data.find((request: any) => 
+            request.created_by === targetUsername
+        );
 
         if (!relevantRequest) {
             return { status: FriendshipStatus.REJECTED };
         }
 
-        console.log('Request status:', relevantRequest.status);
-        
         switch (relevantRequest.status.toUpperCase()) {
             case 'ACCEPTED':
                 return { status: FriendshipStatus.ACCEPTED };
@@ -147,12 +142,16 @@ export const addFriend = async (id: string, userData: AddFriendRequest) => {
 }
 
 export const useAddFriend = () => {
+  const queryClient = useQueryClient();
+  
   return useMutation({
     mutationFn: ({ id, userData }: { id: string; userData: AddFriendRequest }) => 
       addFriend(id, userData),
-    onSuccess: (data, variables) => {
+    onSuccess: (_, variables) => {
+      // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: ['friendStatus', variables.id] });
       queryClient.invalidateQueries({ queryKey: ['profile', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['friends'] });
     }
   });
 }
@@ -319,11 +318,158 @@ export const useDeleteFriend = () => {
         mutationFn: ({ profileId, friendId }: { profileId: string; friendId: string }) => 
             deleteFriend(profileId, friendId),
         onSuccess: (_, variables) => {
+            // Invalidate all relevant queries
             queryClient.invalidateQueries({ queryKey: ['friends', variables.profileId] });
             queryClient.invalidateQueries({ queryKey: ['friendStatus', variables.friendId] });
+            queryClient.invalidateQueries({ queryKey: ['profile', variables.friendId] });
+            // Also invalidate the general friends list
+            queryClient.invalidateQueries({ queryKey: ['friends'] });
         },
     });
 }
+
+interface BlockUserResponse {
+  success: boolean;
+  message: string;
+}
+
+export const blockUser = async (userId: string): Promise<BlockUserResponse> => {
+  try {
+    const response = await api.post(`/profile/${userId}/block/`);
+    return response.data;
+  } catch (error) {
+    console.error('Error blocking user:', error);
+    throw error;
+  }
+};
+
+export const unblockUser = async (userId: string): Promise<BlockUserResponse> => {
+  try {
+    const response = await api.put(`/profile/${userId}/unblock/`);
+    return response.data;
+  } catch (error) {
+    console.error('Error unblocking user:', error);
+    throw error;
+  }
+};
+
+export const useBlockUser = () => {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const deleteFriendMutation = useDeleteFriend();
+  
+  return useMutation({
+    mutationFn: async (userId: string) => {
+      // First delete from friends if they are friends
+      try {
+        await deleteFriendMutation.mutateAsync({
+          profileId: user?.profile_id || '',
+          friendId: userId
+        });
+      } catch (error) {
+        console.log('User was not a friend or error removing friend:', error);
+      }
+      
+
+      return blockUser(userId);
+    },
+    onSuccess: (_, userId) => {
+      queryClient.invalidateQueries({ queryKey: ['blacklist', user?.profile_id] });
+      queryClient.invalidateQueries({ queryKey: ['profile', userId] });
+      queryClient.invalidateQueries({ queryKey: ['profiles'] });
+      queryClient.invalidateQueries({ queryKey: ['friends', user?.profile_id] });
+      queryClient.invalidateQueries({ queryKey: ['friendStatus', userId] });
+    },
+  });
+};
+
+export const useUnblockUser = () => {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  
+  return useMutation({
+    mutationFn: (userId: string) => unblockUser(userId),
+    onSuccess: (_, userId) => {
+      queryClient.invalidateQueries({ queryKey: ['blacklist', user?.profile_id] })
+      queryClient.invalidateQueries({ queryKey: ['profile', userId] })
+      queryClient.invalidateQueries({ queryKey: ['profiles'] })
+    },
+  });
+};
+
+interface BlacklistResponse {
+  profiles: {
+    url: string;
+    username: string;
+    first_name: string;
+    last_name: string;
+    avatar: string | null;
+  }[];
+}
+
+export const getBlacklist = async (userId: string): Promise<BlacklistResponse> => {
+  try {
+    const response = await api.get(`/profile/${userId}/blacklist/`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching blacklist:', error);
+    throw error;
+  }
+};
+
+export const useCheckBlacklist = (targetUsername: string) => {
+  const { user } = useAuth();
+  
+  return useQuery({
+    queryKey: ['blacklist', user?.profile_id, targetUsername],
+    queryFn: async () => {
+      if (!user?.profile_id) return false;
+      try {
+        const blacklist = await getBlacklist(user.profile_id);
+        return blacklist.profiles.some(profile => profile.username === targetUsername);
+      } catch (error) {
+        console.error('Error fetching blacklist:', error);
+        return false;
+      }
+    },
+    enabled: !!user?.profile_id && !!targetUsername
+  });
+};
+
+export const checkIfBlockedByUser = async (targetUserId: string): Promise<boolean> => {
+  try {
+    // Try to fetch the user's profile - if we're blocked, this will return 403
+    await api.get(`/profile/${targetUserId}/`);
+    return false; // If we can access the profile, we're not blocked
+  } catch (error: any) {
+    // If we get a 403 error, it means we're blocked
+    if (error.response?.status === 403) {
+      return true;
+    }
+    // For other errors, assume we're not blocked
+    console.error('Error checking if blocked by user:', error);
+    return false;
+  }
+};
+
+export const useCheckBlockedByUser = (targetUserId: string) => {
+  const { user } = useAuth();
+  
+  return useQuery({
+    queryKey: ['blockedBy', targetUserId, user?.username],
+    queryFn: () => {
+      if (!user?.username || !targetUserId) return false;
+      return checkIfBlockedByUser(targetUserId);
+    },
+    enabled: !!user?.username && !!targetUserId,
+    retry: false, // Don't retry on failure
+    staleTime: 30000, // Cache the result for 30 seconds
+  });
+};
+
+
+
+
 
 
 

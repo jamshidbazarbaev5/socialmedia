@@ -2,7 +2,9 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 import { useGetUserFriends, useDeleteFriend } from '@/app/api/profile/profile'
+import { UserCircle } from 'lucide-react'
 
 interface Friend {
     id: string
@@ -18,7 +20,13 @@ interface FriendsModalProps {
     profileId: string
 }
 
+const extractIdFromUrl = (url: string) => {
+    const matches = url.match(/profile\/([^/]+)/);
+    return matches ? matches[1] : null;
+};
+
 export default function FriendsModal({ isOpen, onClose, profileId }: FriendsModalProps) {
+    const router = useRouter()
     const { data: friends, isLoading } = useGetUserFriends(profileId)
     const deleteFriend = useDeleteFriend()
     const [searchQuery, setSearchQuery] = useState('')
@@ -31,7 +39,21 @@ export default function FriendsModal({ isOpen, onClose, profileId }: FriendsModa
         `${friend.first_name} ${friend.last_name}`.toLowerCase().includes(searchQuery.toLowerCase())
     ) || []
 
-    const handleRemoveFriend = async (friendId: string) => {
+    const handleUserClick = (friendUrl: string) => {
+        const friendId = extractIdFromUrl(friendUrl)
+        if (friendId) {
+            onClose() // Close the modal first
+            router.push(`/profile/${friendId}`) // Navigate to the profile page
+        }
+    }
+
+    const handleRemoveFriend = async (friendUrl: string) => {
+        const friendId = extractIdFromUrl(friendUrl);
+        if (!friendId) {
+            console.error('Could not extract friend ID from URL');
+            return;
+        }
+
         try {
             setDeletingId(friendId)
             await deleteFriend.mutateAsync({ 
@@ -93,18 +115,25 @@ export default function FriendsModal({ isOpen, onClose, profileId }: FriendsModa
                     ) : (
                         filteredFriends.map((friend: any) => (
                             <div 
-                                key={friend.id}
+                                key={extractIdFromUrl(friend.url)}
                                 className="flex items-center justify-between px-4 py-3 hover:bg-zinc-800/50"
                             >
-                                <div className="flex items-center gap-3">
+                                <div 
+                                    className="flex items-center gap-3 cursor-pointer"
+                                    onClick={() => handleUserClick(friend.url)}
+                                >
                                     <div className="w-12 h-12 rounded-full overflow-hidden bg-zinc-800">
-                                        <Image
-                                            src={friend.avatar || '/placeholder.svg'}
-                                            alt={friend.username}
-                                            width={48}
-                                            height={48}
-                                            className="w-full h-full object-cover"
-                                        />
+                                        {friend.avatar ? (
+                                            <Image
+                                                src={friend.avatar}
+                                                alt={friend.username}
+                                                width={48}
+                                                height={48}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <UserCircle className="w-full h-full text-white p-2" />
+                                        )}
                                     </div>
                                     <div>
                                         <div className="text-white font-medium">
@@ -116,11 +145,14 @@ export default function FriendsModal({ isOpen, onClose, profileId }: FriendsModa
                                     </div>
                                 </div>
                                 <button
-                                    onClick={() => handleRemoveFriend(friend.id)}
-                                    disabled={deletingId === friend.id}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleRemoveFriend(friend.url);
+                                    }}
+                                    disabled={deletingId === extractIdFromUrl(friend.url)}
                                     className="px-4 py-1.5 rounded-md bg-zinc-800 text-zinc-300 hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
                                 >
-                                    {deletingId === friend.id ? 'Removing...' : 'Remove'}
+                                    {deletingId === extractIdFromUrl(friend.url) ? 'Removing...' : 'Remove'}
                                 </button>
                             </div>
                         ))

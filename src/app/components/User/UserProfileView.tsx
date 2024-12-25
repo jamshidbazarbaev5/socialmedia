@@ -2,11 +2,11 @@
 
 import Image from 'next/image'
 import { useAuth } from '@/app/context/AuthContext'
-import {useAddFriend, useCheckFriendStatus, useGetUserProfile, useProfiles, useGetPosts, useGetUserFriends} from '@/app/api/profile/profile'
-import { Camera, MoreHorizontal, UserPlus } from 'lucide-react'
+import {useAddFriend, useCheckFriendStatus, useGetUserProfile, useProfiles, useGetPosts, useGetUserFriends, useBlockUser, useUnblockUser, useCheckBlacklist, useDeleteFriend, useCheckBlockedByUser} from '@/app/api/profile/profile'
+import { ArrowLeft, Camera, MoreHorizontal, UserPlus, UserCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {useState} from "react";
+import {useState, useEffect} from "react";
 import {router} from "next/client";
 import {useRouter} from "next/navigation";
 import Link from "next/link";
@@ -14,6 +14,8 @@ import { FriendRequests } from '@/app/components/User/FriendsRequsts'
 import { FriendshipStatus } from '@/app/api/profile/profile'
 import { PostCard } from '../Posts/PostCard'
 import { useGetProfilePosts } from '@/app/api/posts/posts'
+import { SimpleDropdown, DropdownItem } from '@/app/components/dropdown/dropdown'
+import { useQueryClient } from '@tanstack/react-query'
 
 interface UserProfileViewProps {
     url: string
@@ -29,6 +31,7 @@ interface UserProfileViewProps {
     school: number | null
     friends: string
     posts: string
+    is_blocked?: boolean
 }
 
 interface DecodedToken {
@@ -44,6 +47,49 @@ interface FriendStatusResponse {
   is_pending: boolean;
 }
 
+const BlockedUserView = ({ username }: { username: string }) => {
+  return (
+    <div className="bg-black text-white min-h-screen">
+      <div className="max-w-4xl mx-auto px-4 py-16">
+        <div className="flex flex-col items-center justify-center text-center">
+          <div className="w-24 h-24 rounded-full bg-zinc-800 flex items-center justify-center mb-6">
+            <UserCircle className="w-16 h-16 text-zinc-600" />
+          </div>
+          <h1 className="text-2xl font-semibold mb-4">@{username}</h1>
+          <p className="text-zinc-400 mb-6">
+            You have blocked this account
+          </p>
+          <p className="text-sm text-zinc-500 max-w-md">
+            You can't see their posts or profile information while they're blocked. 
+            Unblock them if you'd like to view their profile again.
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const BlockedByUserView = ({ username }: { username: string }) => {
+  return (
+    <div className="bg-black text-white min-h-screen">
+      <div className="max-w-4xl mx-auto px-4 py-16">
+        <div className="flex flex-col items-center justify-center text-center">
+          <div className="w-24 h-24 rounded-full bg-zinc-800 flex items-center justify-center mb-6">
+            <UserCircle className="w-16 h-16 text-zinc-600" />
+          </div>
+          <h1 className="text-2xl font-semibold mb-4">@{username}</h1>
+          <p className="text-zinc-400 mb-6">
+            This account has blocked you
+          </p>
+          <p className="text-sm text-zinc-500 max-w-md">
+            You cannot view their profile or interact with their content.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export function UserProfileView({
                                     url,
                                     id,
@@ -58,7 +104,9 @@ export function UserProfileView({
                                     school,
                                     friends,
                                     posts,
+                                    is_blocked,
                                 }: UserProfileViewProps) {
+    const queryClient = useQueryClient()
     const { user } = useAuth()
     const { data: friendStatus } = useCheckFriendStatus(id, username)
     const addFriendMutation = useAddFriend()
@@ -70,6 +118,24 @@ export function UserProfileView({
     const { data: userFriends } = useGetUserFriends(id)
     
     const [requestStatus, setRequestStatus] = useState(friendStatus?.status || null)
+    const blockUser = useBlockUser()
+    const unblockUser = useUnblockUser()
+    const { data: isUserBlocked, isLoading: blockStatusLoading } = useCheckBlacklist(username)
+    const [isBlocked, setIsBlocked] = useState(false)
+    const deleteFriendMutation = useDeleteFriend()
+    const { data: isBlockedByUser } = useCheckBlockedByUser(id)
+
+    useEffect(() => {
+        if (typeof isUserBlocked === 'boolean') {
+            setIsBlocked(isUserBlocked)
+        }
+    }, [isUserBlocked])
+
+    useEffect(() => {
+        if (friendStatus?.status) {
+            setRequestStatus(friendStatus.status);
+        }
+    }, [friendStatus?.status]);
 
     const handleAddFriend = async () => {
         if (!user) {
@@ -95,15 +161,62 @@ export function UserProfileView({
             });
             
             setRequestStatus(FriendshipStatus.SENT);
-            console.log('Friend request sent successfully');
             
+            queryClient.invalidateQueries({ queryKey: ['friendStatus', id] });
+            queryClient.invalidateQueries({ queryKey: ['profile', id] });
+            
+            console.log('Friend request sent successfully');
         } catch (error) {
             console.error('Error sending friend request:', error);
         }
     };
 
     const navigateBack = () => {
-        router.push('/profile')
+        router.back()
+    }
+    const handleBlock = async () => {
+        try {
+            await blockUser.mutateAsync(id)
+            setIsBlocked(true)
+            queryClient.invalidateQueries({ queryKey: ['blacklist', user?.profile_id] })
+            queryClient.invalidateQueries({ queryKey: ['profile', id] })
+            queryClient.invalidateQueries({ queryKey: ['profiles'] })
+        } catch (error) {
+            console.error('Failed to block user:', error)
+            alert('Failed to block user')
+        }
+    }
+
+    const handleUnblock = async () => {
+        try {
+            await unblockUser.mutateAsync(id)
+            setIsBlocked(false)
+            queryClient.invalidateQueries({ queryKey: ['blacklist', user?.profile_id] })
+            queryClient.invalidateQueries({ queryKey: ['profile', id] })
+            queryClient.invalidateQueries({ queryKey: ['profiles'] })
+        } catch (error) {
+            console.error('Failed to unblock user:', error)
+            alert('Failed to unblock user')
+        }
+    }
+
+    const handleReport = () => {
+        alert('Report functionality coming soon')
+    }
+
+    const handleDeleteFriend = async () => {
+        try {
+            await deleteFriendMutation.mutateAsync({
+                profileId: user?.profile_id || '',
+                friendId: id
+            })
+            setRequestStatus(null)
+            queryClient.invalidateQueries({ queryKey: ['friendStatus', id] })
+            queryClient.invalidateQueries({ queryKey: ['profile', id] })
+        } catch (error) {
+            console.error('Failed to delete friend:', error)
+            alert('Failed to remove friend')
+        }
     }
 
     const renderFriendButton = () => {
@@ -160,16 +273,39 @@ export function UserProfileView({
         }
     };
 
+    if (isBlockedByUser) {
+        return (
+            <div>
+                <div className="max-w-4xl mx-auto px-4">
+                    <button
+                        onClick={navigateBack}
+                        className="mb-4 px-4 py-2 text-white"
+                    >
+                        <ArrowLeft className="h-7 w-7 mr-2"/>
+                    </button>
+                </div>
+                <BlockedByUserView username={username} />
+            </div>
+        );
+    }
+
     return (
         <div className="bg-black text-white min-h-screen">
-
             <div className="max-w-4xl mx-auto px-4">
                 <button
                     onClick={navigateBack}
-                    className="mb-4 px-4 py-2 text-white bg-gray-700 rounded-md"
+                    className="mb-4 px-4 py-2 text-white"
                 >
-                    Back to Profile
+                    <ArrowLeft className="h-7 w-7 mr-2"/>
                 </button>
+
+                {isBlocked && (
+                    <div className="bg-zinc-800 p-4 mb-4 rounded-lg">
+                        <p className="text-zinc-400 text-sm">
+                            You have blocked this user. They cannot see your profile or interact with your content.
+                        </p>
+                    </div>
+                )}
 
                 <div className="flex items-center justify-between py-4">
                     <h1 className="text-xl font-normal">{username}</h1>
@@ -181,25 +317,53 @@ export function UserProfileView({
                         >
                             Send Message
                         </Button>
-                        <Button
-                            variant="secondary"
-                            size="icon"
-                            className="bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg"
-                        >
-                            <MoreHorizontal className="h-4 w-4"/>
-                        </Button>
+                        {user?.profile_id !== id && (
+                            <SimpleDropdown
+                                trigger={
+                                    <Button
+                                        variant="secondary"
+                                        size="icon"
+                                        className="bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg"
+                                    >
+                                        <MoreHorizontal className="h-4 w-4"/>
+                                    </Button>
+                                }
+                            >
+                                {requestStatus === FriendshipStatus.ACCEPTED && (
+                                    <DropdownItem
+                                        onClick={handleDeleteFriend}
+                                        className="text-red-500"
+                                        disabled={deleteFriendMutation.isPending}
+                                    >
+                                        Remove Friend
+                                    </DropdownItem>
+                                )}
+                                <DropdownItem
+                                    onClick={isBlocked ? handleUnblock : handleBlock}
+                                    className="text-red-500"
+                                    disabled={blockStatusLoading}
+                                >
+                                    {blockStatusLoading ? 'Loading...' : isBlocked ? 'Unblock User' : 'Block User'}
+                                </DropdownItem>
+                            </SimpleDropdown>
+                        )}
                     </div>
                 </div>
 
                 <div className="flex items-start gap-8 py-8">
-                    <div className="relative">
-                        <Image
-                            src={avatar || '/placeholder.svg?height=150&width=150'}
-                            alt={username}
-                            width={150}
-                            height={150}
-                            className="rounded-full"
-                        />
+                    <div className="relative w-[150px] h-[150px] rounded-full bg-zinc-800">
+                        {avatar ? (
+                            <Image
+                                src={avatar}
+                                alt={username}
+                                width={150}
+                                height={150}
+                                className="rounded-full object-cover"
+                                priority
+                            />
+                        ) : (
+                            <UserCircle className="w-full h-full text-white p-2" />
+                        )}
                     </div>
                     <div className="flex-1">
                         <div className="mb-6">
@@ -285,10 +449,13 @@ export function UserProfileView({
                                 {userPosts.map((post: any) => (
                                     <PostCard
                                         key={post.id}
+                                        url={post.url}
                                         id={post.id}
+                                        profileId={id}
+                                        currentUserId={user?.profile_id}
                                         content={post.content}
                                         post_attachments={post.post_attachments}
-                                        likes_count={post.likes_count || 0}
+                                        likes_count={post.likes || 0}
                                         comments_count={post.comments_count || 0}
                                         user={{
                                             username: username,

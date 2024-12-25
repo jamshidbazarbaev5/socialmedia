@@ -8,6 +8,7 @@ import { useAuth } from '@/app/context/AuthContext'
 import { useAcceptFriendRequest, useRejectFriendRequest } from '@/app/api/profile/profile'
 import { useGetFriendRequests } from '@/app/api/profile/profile'
 import { FriendRequest } from '@/app/types/friends'
+import { UserCircle } from 'lucide-react'
 
 interface Notification {
   url: string;
@@ -78,16 +79,22 @@ export default function NotificationsPage() {
                 className="flex items-center justify-between p-4 hover:bg-gray-900 rounded-lg"
               >
                 <div className="flex items-center space-x-4">
-                  <Image
-                    src="/placeholder.svg"
-                    alt='p'
-                    width={44}
-                    height={44}
-                    className="rounded-full"
-                  />
+                  <div className="relative w-11 h-11 rounded-full bg-zinc-800">
+                    {request.sender_avatar ? (
+                      <Image
+                        src={request.sender_avatar}
+                        alt={request.sender_username || 'User avatar'}
+                        width={44}
+                        height={44}
+                        className="rounded-full object-cover"
+                      />
+                    ) : (
+                      <UserCircle className="w-full h-full text-white p-2" />
+                    )}
+                  </div>
                   <div className="flex-grow">
                     <p className="text-sm">
-                      {request.created_by} - {request.status}
+                    {request.created_by} - {request.status}.
                     </p>
                     <p className="text-gray-400 text-sm">
                       {request.created_at}

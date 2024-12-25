@@ -130,14 +130,15 @@ export default function EditProfile({ currentProfile }: { currentProfile: Profil
       
       <div className="bg-zinc-900 rounded-lg p-4 mb-6 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <div className="h-12 w-12 rounded-full bg-zinc-800 flex items-center justify-center">
+          <div className="relative h-12 w-12 rounded-full overflow-hidden bg-zinc-800 flex items-center justify-center">
             {formData.avatar ? (
               <Image 
                 src={formData.avatar} 
                 alt={formData.username} 
-                width={48} 
-                height={48} 
-                className="h-full w-full rounded-full object-cover" 
+                fill
+                sizes="48px"
+                className="object-cover" 
+                priority
               />
             ) : (
               <span className="text-xl text-zinc-400">{formData.username?.[0]}</span>
