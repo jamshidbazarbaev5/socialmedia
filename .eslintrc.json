@@ -7,7 +7,8 @@
     "prefer-const": "off",
     "@next/next/no-img-element": "off",
     "import/no-unused-modules": "off",
-    "no-unused-vars": "off"
+    "no-unused-vars": "off",
+
+    "react/no-unescaped-entities": "off"
   }
 }
-
